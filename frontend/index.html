@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grocery List</title>
+  <link rel="stylesheet" href="/shared.css">
+  <link rel="stylesheet" href="/grocery/grocery.css">
+</head>
+<body>
+  <nav class="tools-nav">
+    <a href="/" class="nav-back">← Tools</a>
+    <span class="nav-title">🛒 Grocery List</span>
+  </nav>
+
+  <main id="app">
+    <div id="loading" class="loading-state">Loading…</div>
+    <div id="error-banner" class="error-banner" style="display:none"></div>
+
+    <!-- Active list -->
+    <section id="active-section" style="display:none">
+      <div id="categories-container"></div>
+      <div class="archive-row">
+        <button id="archive-btn" class="btn btn-secondary">Archive this shop</button>
+      </div>
+    </section>
+
+    <!-- Archived lists -->
+    <section id="archived-section" style="display:none">
+      <details id="archived-details">
+        <summary class="archived-toggle">Past lists</summary>
+        <div id="archived-list"></div>
+      </details>
+    </section>
+  </main>
+
+  <!-- Archive confirmation modal -->
+  <div id="modal-overlay" class="modal-overlay" style="display:none">
+    <div class="modal">
+      <p class="modal-text">Archive this list? It will be saved and the active list will be cleared.</p>
+      <div class="modal-actions">
+        <button id="modal-cancel" class="btn btn-secondary">Cancel</button>
+        <button id="modal-confirm" class="btn btn-primary">Archive</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pick items modal -->
+  <div id="pick-modal-overlay" class="modal-overlay" style="display:none">
+    <div class="modal modal-wide">
+      <h3 class="modal-title">Add items to current list</h3>
+      <div id="pick-items-list" class="pick-items-list"></div>
+      <div class="modal-actions">
+        <button id="pick-cancel" class="btn btn-secondary">Cancel</button>
+        <button id="pick-confirm" class="btn btn-primary">Add checked items</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/grocery/app.js"></script>
+</body>
+</html>
