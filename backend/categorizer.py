@@ -19,13 +19,17 @@ def categorize_items(body: str, sender: str) -> list[dict]:
     user_message = f"Categorize the grocery items in this message:\n{body}\n\nSender: {sender}"
 
     message = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model="claude-sonnet-4-5",
         max_tokens=1024,
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": user_message}]
     )
 
     raw = message.content[0].text.strip()
+    # Strip markdown code fences if the model added them despite instructions
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[-1]
+        raw = raw.rsplit("```", 1)[0].strip()
 
     try:
         items = json.loads(raw)
