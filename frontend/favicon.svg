@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Body (yellow with black stripes) -->
+  <ellipse cx="32" cy="38" rx="14" ry="18" fill="#F5C400"/>
+  <rect x="18" y="30" width="28" height="5" rx="1" fill="#222"/>
+  <rect x="18" y="40" width="28" height="5" rx="1" fill="#222"/>
+  <rect x="19" y="50" width="26" height="4" rx="2" fill="#222"/>
+
+  <!-- Head -->
+  <circle cx="32" cy="20" r="9" fill="#F5C400"/>
+  <circle cx="28" cy="18" r="2" fill="#222"/>
+  <circle cx="36" cy="18" r="2" fill="#222"/>
+
+  <!-- Antennae -->
+  <line x1="28" y1="12" x2="22" y2="5" stroke="#222" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="22" cy="5" r="1.5" fill="#222"/>
+  <line x1="36" y1="12" x2="42" y2="5" stroke="#222" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="42" cy="5" r="1.5" fill="#222"/>
+
+  <!-- Wings -->
+  <ellipse cx="18" cy="28" rx="10" ry="6" fill="rgba(180,220,255,0.75)" transform="rotate(-20 18 28)"/>
+  <ellipse cx="46" cy="28" rx="10" ry="6" fill="rgba(180,220,255,0.75)" transform="rotate(20 46 28)"/>
+
+  <!-- Letter B overlay -->
+  <text x="32" y="42" font-family="Georgia, serif" font-weight="bold" font-size="18" fill="white" text-anchor="middle" opacity="0.9">B</text>
+</svg>
