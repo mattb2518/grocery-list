@@ -13,10 +13,18 @@ item has a "name" (cleaned, normalized) and "category" (one of: pantry, produce,
 meat, dairy, frozen, deli). Return ONLY valid JSON, no explanation, no markdown."""
 
 
-def categorize_items(body: str, sender: str) -> list[dict]:
+def categorize_items(body: str, sender: str, subject: str = "") -> list[dict]:
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
-    user_message = f"Categorize the grocery items in this message:\n{body}\n\nSender: {sender}"
+    # Combine subject and body — items are often in the subject line
+    parts = []
+    if subject and subject.strip():
+        parts.append(subject.strip())
+    if body and body.strip():
+        parts.append(body.strip())
+    combined = "\n".join(parts) if parts else ""
+
+    user_message = f"Categorize the grocery items in this message:\n{combined}\n\nSender: {sender}"
 
     message = client.messages.create(
         model="claude-sonnet-4-5",

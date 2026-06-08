@@ -61,11 +61,23 @@ def get_items_for_list(conn, list_id: int):
 
 def insert_items(conn, items: list[dict], list_id: int, submitted_by: str):
     now = datetime.now(timezone.utc).isoformat()
-    conn.executemany(
-        "INSERT INTO items (name, category, submitted_by, submitted_at, list_id) VALUES (?, ?, ?, ?, ?)",
-        [(i["name"], i["category"], submitted_by, now, list_id) for i in items]
-    )
-    conn.commit()
+    # Fetch existing item names on this list for deduplication (case-insensitive)
+    existing = {
+        row["name"].lower()
+        for row in conn.execute(
+            "SELECT name FROM items WHERE list_id = ?", (list_id,)
+        ).fetchall()
+    }
+    new_items = [
+        i for i in items if i["name"].lower() not in existing
+    ]
+    if new_items:
+        conn.executemany(
+            "INSERT INTO items (name, category, submitted_by, submitted_at, list_id) VALUES (?, ?, ?, ?, ?)",
+            [(i["name"], i["category"], submitted_by, now, list_id) for i in new_items]
+        )
+        conn.commit()
+    return len(new_items)
 
 
 def archive_active_list(conn, label: str | None = None):

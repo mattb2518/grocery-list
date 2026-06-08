@@ -68,7 +68,9 @@ function renderActiveList(data) {
   container.innerHTML = '';
 
   for (const cat of CATEGORIES) {
-    const items = byCategory[cat.key] || [];
+    const items = (byCategory[cat.key] || []).sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+    );
     const section = document.createElement('div');
     section.className = 'category-section';
 

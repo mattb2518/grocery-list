@@ -57,7 +57,7 @@ async def inbound_email(
     if WORKER_SECRET and x_worker_secret != WORKER_SECRET:
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    items = categorize_items(payload.body, payload.sender)
+    items = categorize_items(payload.body, payload.sender, payload.subject)
     if not items:
         return {"success": True, "items_added": 0}
 
