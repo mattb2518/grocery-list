@@ -1,0 +1,7 @@
+name = "grocery-email-worker"
+main = "index.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+# WORKER_SECRET is set as a secret in the Cloudflare dashboard, not here
+# Run: npx wrangler secret put WORKER_SECRET
