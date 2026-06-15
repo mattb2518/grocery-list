@@ -77,6 +77,7 @@ POST /check-mail — pulls unseen mail from the IMAP mailbox on demand, categori
 GET /list — returns active list with all items
 POST /archive — archives the active list; body {checked_only: false} archives the full list and creates a new empty active list, {checked_only: true} archives only checked items into a new past list and leaves unchecked items active
 POST /item/{item_id}/check — sets the checked flag on an active-list item ({checked: bool})
+POST /item/{item_id}/edit — renames an active-list item ({name: str}); powers the inline ✎ edit on each item
 GET /archived — returns all archived lists (summary)
 GET /archived/{list_id} — returns full items for archived list
 POST /restore/{list_id} — copies archived list items into active list

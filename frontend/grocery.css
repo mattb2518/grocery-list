@@ -125,6 +125,30 @@ main {
 }
 .delete-btn:hover { color: #e55; }
 
+.edit-btn {
+  background: none;
+  border: none;
+  color: #ccc;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+.edit-btn:hover { color: #1a1a2e; }
+
+.item-edit-input {
+  flex: 1;
+  font-size: 15px;
+  font-family: inherit;
+  padding: 4px 8px;
+  border: 1px solid #1a1a2e;
+  border-radius: 6px;
+  outline: none;
+  min-width: 0;
+}
+
 .empty-state {
   padding: 16px;
   color: #bbb;

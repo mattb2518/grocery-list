@@ -14,11 +14,11 @@ load_dotenv()
 from database import (
     init_db, get_connection, get_active_list, get_items_for_list,
     insert_items, archive_active_list, archive_checked_items,
-    set_item_checked, get_archived_lists,
+    set_item_checked, update_item_name, get_archived_lists,
     get_archived_list, copy_items_to_active, delete_item
 )
 from models import (
-    InboundEmail, ArchiveRequest, AddItemsRequest, CheckRequest,
+    InboundEmail, ArchiveRequest, AddItemsRequest, CheckRequest, EditRequest,
     ActiveList, ArchivedListSummary, ArchivedListDetail, Item
 )
 from categorizer import categorize_items
@@ -158,6 +158,18 @@ def archive(req: ArchiveRequest):
 def check_item(item_id: int, req: CheckRequest):
     with get_connection() as conn:
         ok = set_item_checked(conn, item_id, req.checked)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Item not found in active list")
+    return {"success": True}
+
+
+@app.post("/api/item/{item_id}/edit")
+def edit_item(item_id: int, req: EditRequest):
+    name = req.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Name cannot be empty")
+    with get_connection() as conn:
+        ok = update_item_name(conn, item_id, name)
     if not ok:
         raise HTTPException(status_code=404, detail="Item not found in active list")
     return {"success": True}

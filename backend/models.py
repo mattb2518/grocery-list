@@ -22,6 +22,10 @@ class CheckRequest(BaseModel):
     checked: bool
 
 
+class EditRequest(BaseModel):
+    name: str
+
+
 class Item(BaseModel):
     id: int
     name: str

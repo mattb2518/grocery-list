@@ -120,6 +120,16 @@ def archive_checked_items(conn, label: str | None = None):
     return archived_id
 
 
+def update_item_name(conn, item_id: int, name: str):
+    active = get_active_list(conn)
+    result = conn.execute(
+        "UPDATE items SET name = ? WHERE id = ? AND list_id = ?",
+        (name, item_id, active["id"])
+    )
+    conn.commit()
+    return result.rowcount > 0
+
+
 def set_item_checked(conn, item_id: int, checked: bool):
     active = get_active_list(conn)
     result = conn.execute(

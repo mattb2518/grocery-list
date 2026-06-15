@@ -12,6 +12,7 @@ const CATEGORIES = [
 let pollTimer = null;
 let pickListId = null;
 let archiveCheckedOnly = false;
+let editingItemId = null;
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
@@ -31,7 +32,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function startPolling() {
   if (pollTimer) clearInterval(pollTimer);
-  pollTimer = setInterval(loadList, 30_000);
+  // Don't refresh mid-edit, or the auto-refresh would wipe the input.
+  pollTimer = setInterval(() => { if (!editingItemId) loadList(); }, 30_000);
 }
 
 // ── Data loading ──────────────────────────────────────────────────────────────
@@ -119,6 +121,12 @@ function renderItem(item) {
   meta.className = 'item-meta';
   meta.textContent = `${item.submitted_by} · ${relativeTime(item.submitted_at)}`;
 
+  const edit = document.createElement('button');
+  edit.className = 'edit-btn';
+  edit.title = 'Edit';
+  edit.textContent = '✎';
+  edit.addEventListener('click', () => startEdit(item, name));
+
   const del = document.createElement('button');
   del.className = 'delete-btn';
   del.title = 'Remove';
@@ -128,8 +136,52 @@ function renderItem(item) {
   li.appendChild(check);
   li.appendChild(name);
   li.appendChild(meta);
+  li.appendChild(edit);
   li.appendChild(del);
   return li;
+}
+
+function startEdit(item, nameEl) {
+  if (editingItemId) return;          // one edit at a time
+  editingItemId = item.id;
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'item-edit-input';
+  input.value = item.name;
+  nameEl.replaceWith(input);
+  input.focus();
+  input.select();
+
+  let done = false;
+  const finish = async (save) => {
+    if (done) return;
+    done = true;
+    const newName = input.value.trim();
+    editingItemId = null;
+    if (save && newName && newName !== item.name) {
+      try {
+        const res = await fetch(`${API}/item/${item.id}/edit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newName })
+        });
+        if (!res.ok) throw new Error();
+        item.name = newName;
+        clearError();
+      } catch {
+        showError('Could not save edit.');
+      }
+    }
+    nameEl.textContent = item.name;
+    input.replaceWith(nameEl);
+  };
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+    else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+  });
+  input.addEventListener('blur', () => finish(true));
 }
 
 function renderArchived(lists) {
