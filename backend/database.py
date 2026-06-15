@@ -95,6 +95,41 @@ def archive_active_list(conn, label: str | None = None):
     return active["id"]
 
 
+def archive_checked_items(conn, label: str | None = None):
+    """Archive only the checked items from the active list into a new archived
+    list, leaving the unchecked items on the active list. Returns the new
+    archived list id, or None if there were no checked items."""
+    active = get_active_list(conn)
+    now = datetime.now(timezone.utc).isoformat()
+    checked = conn.execute(
+        "SELECT COUNT(*) AS c FROM items WHERE list_id = ? AND checked = 1",
+        (active["id"],)
+    ).fetchone()["c"]
+    if not checked:
+        return None
+    cur = conn.execute(
+        "INSERT INTO lists (status, created_at, archived_at, label) VALUES ('archived', ?, ?, ?)",
+        (now, now, label)
+    )
+    archived_id = cur.lastrowid
+    conn.execute(
+        "UPDATE items SET list_id = ? WHERE list_id = ? AND checked = 1",
+        (archived_id, active["id"])
+    )
+    conn.commit()
+    return archived_id
+
+
+def set_item_checked(conn, item_id: int, checked: bool):
+    active = get_active_list(conn)
+    result = conn.execute(
+        "UPDATE items SET checked = ? WHERE id = ? AND list_id = ?",
+        (1 if checked else 0, item_id, active["id"])
+    )
+    conn.commit()
+    return result.rowcount > 0
+
+
 def get_archived_lists(conn):
     rows = conn.execute(
         """

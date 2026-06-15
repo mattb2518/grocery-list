@@ -11,6 +11,7 @@ const CATEGORIES = [
 
 let pollTimer = null;
 let pickListId = null;
+let archiveCheckedOnly = false;
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
@@ -19,7 +20,9 @@ document.addEventListener('DOMContentLoaded', () => {
   loadArchived();
   startPolling();
 
-  document.getElementById('archive-btn').addEventListener('click', () => showModal());
+  document.getElementById('check-mail-btn').addEventListener('click', checkMail);
+  document.getElementById('archive-all-btn').addEventListener('click', () => showModal(false));
+  document.getElementById('archive-checked-btn').addEventListener('click', () => showModal(true));
   document.getElementById('modal-cancel').addEventListener('click', hideModal);
   document.getElementById('modal-confirm').addEventListener('click', confirmArchive);
   document.getElementById('pick-cancel').addEventListener('click', hidePickModal);
@@ -99,8 +102,14 @@ function renderActiveList(data) {
 
 function renderItem(item) {
   const li = document.createElement('li');
-  li.className = 'item-row';
+  li.className = 'item-row' + (item.checked ? ' checked' : '');
   li.dataset.id = item.id;
+
+  const check = document.createElement('input');
+  check.type = 'checkbox';
+  check.className = 'item-check';
+  check.checked = !!item.checked;
+  check.addEventListener('change', () => toggleChecked(item.id, check.checked, li));
 
   const name = document.createElement('span');
   name.className = 'item-name';
@@ -116,6 +125,7 @@ function renderItem(item) {
   del.textContent = '×';
   del.addEventListener('click', () => removeItem(item.id, li));
 
+  li.appendChild(check);
   li.appendChild(name);
   li.appendChild(meta);
   li.appendChild(del);
@@ -171,7 +181,57 @@ async function removeItem(id, el) {
   }
 }
 
-function showModal() {
+async function toggleChecked(id, checked, el) {
+  el.classList.toggle('checked', checked);
+  try {
+    const res = await fetch(`${API}/item/${id}/check`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ checked })
+    });
+    if (!res.ok) throw new Error();
+  } catch {
+    el.classList.toggle('checked', !checked);
+    const box = el.querySelector('.item-check');
+    if (box) box.checked = !checked;
+    showError('Could not update item.');
+  }
+}
+
+async function checkMail() {
+  const btn = document.getElementById('check-mail-btn');
+  const status = document.getElementById('refresh-status');
+  btn.disabled = true;
+  status.textContent = 'Checking…';
+  try {
+    const res = await fetch(`${API}/check-mail`, { method: 'POST' });
+    if (!res.ok) {
+      const detail = await res.json().catch(() => ({}));
+      throw new Error(detail.detail || 'Could not check mail.');
+    }
+    const data = await res.json();
+    await loadList();
+    if (data.items_added > 0) {
+      status.textContent = `Added ${data.items_added} item${data.items_added !== 1 ? 's' : ''}`;
+    } else {
+      status.textContent = 'No new items';
+    }
+    clearError();
+  } catch (e) {
+    status.textContent = '';
+    showError(e.message);
+  } finally {
+    btn.disabled = false;
+    setTimeout(() => { status.textContent = ''; }, 4000);
+  }
+}
+
+function showModal(checkedOnly) {
+  archiveCheckedOnly = checkedOnly;
+  const text = checkedOnly
+    ? 'Archive the checked items? They will be saved to a past list and removed from the active list. Unchecked items stay.'
+    : 'Archive this list? It will be saved and the active list will be cleared.';
+  document.querySelector('#modal-overlay .modal-text').textContent = text;
   document.getElementById('modal-overlay').style.display = 'flex';
 }
 function hideModal() {
@@ -181,12 +241,20 @@ function hideModal() {
 async function confirmArchive() {
   hideModal();
   try {
-    const res = await fetch(`${API}/archive`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-    if (!res.ok) throw new Error();
+    const res = await fetch(`${API}/archive`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ checked_only: archiveCheckedOnly })
+    });
+    if (!res.ok) {
+      const detail = await res.json().catch(() => ({}));
+      throw new Error(detail.detail || 'Could not archive list.');
+    }
     await loadList();
     await loadArchived();
-  } catch {
-    showError('Could not archive list.');
+    clearError();
+  } catch (e) {
+    showError(e.message);
   }
 }
 

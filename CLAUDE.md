@@ -16,10 +16,12 @@ Add a grocery.css for any grocery-specific styles only
 The nav bar at the top must use the shared nav pattern already established in tools-directory and the relationships app
 Mobile-first, responsive
 Architecture Overview
-[Email] → [Cloudflare Worker] → [FastAPI on DO :8001] → [SQLite]
-                                         ↕
-                              [Static frontend at /grocery/]
-The Cloudflare Worker is a thin receiver — it parses the raw email, extracts sender and body, and POSTs to the FastAPI backend. All intelligence (Claude categorization) happens in the backend, not the Worker.
+[Grocery Gmail inbox] → [make.com scenario] → [FastAPI on DO :8001] → [SQLite]
+                                                      ↕
+                                       [Static frontend at /grocery/]
+LIVE PUSH PATH (in use): family emails land in a Gmail inbox; a make.com scenario polls Gmail (~15 min) and POSTs each message to POST /inbound-email. All intelligence (Claude categorization) happens in the backend.
+The Cloudflare Worker in worker/index.js is an ALTERNATIVE receiver for the same /inbound-email endpoint and is NOT currently deployed/in use — the make.com path was chosen instead. Keep the Worker code as a fallback but do not assume it is the live path.
+PULL PATH (backend/mail_poller.py): the backend can also pull the Gmail inbox directly over IMAP — on demand via POST /check-mail (the "Check mail now" button, the main reason this exists: pull now instead of waiting for make.com's cycle) and optionally on a schedule (every POLL_INTERVAL_MINUTES). Recommended to run with POLL_INTERVAL_MINUTES=0 so the backend does not duplicate make.com's scheduled polling. All paths share the same ingest code; the poller reads only unseen mail and marks it seen, and insert_items dedupes by name, so nothing is double-added.
 Repository & File Structure
 grocery-list/
 ├── CLAUDE.md
@@ -27,6 +29,7 @@ grocery-list/
 ├── backend/
 │   ├── main.py              ← FastAPI app
 │   ├── categorizer.py       ← Claude API call for item categorization
+│   ├── mail_poller.py       ← IMAP pull: scheduled + on-demand mailbox polling
 │   ├── database.py          ← SQLite setup and queries
 │   ├── models.py            ← Pydantic models
 │   └── requirements.txt
@@ -70,8 +73,10 @@ deli — deli meats, prepared foods, cheeses from the deli counter
 Backend — FastAPI (main.py)
 Endpoints
 POST /inbound-email — receives from Cloudflare Worker, requires X-Worker-Secret header
+POST /check-mail — pulls unseen mail from the IMAP mailbox on demand, categorizes, and adds items (powers the "Check mail now" button)
 GET /list — returns active list with all items
-POST /archive — archives current list, creates new empty active list
+POST /archive — archives the active list; body {checked_only: false} archives the full list and creates a new empty active list, {checked_only: true} archives only checked items into a new past list and leaves unchecked items active
+POST /item/{item_id}/check — sets the checked flag on an active-list item ({checked: bool})
 GET /archived — returns all archived lists (summary)
 GET /archived/{list_id} — returns full items for archived list
 POST /restore/{list_id} — copies archived list items into active list

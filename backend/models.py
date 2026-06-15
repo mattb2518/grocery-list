@@ -11,10 +11,15 @@ class InboundEmail(BaseModel):
 
 class ArchiveRequest(BaseModel):
     label: Optional[str] = None
+    checked_only: bool = False
 
 
 class AddItemsRequest(BaseModel):
     item_ids: list[int]
+
+
+class CheckRequest(BaseModel):
+    checked: bool
 
 
 class Item(BaseModel):

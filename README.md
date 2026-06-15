@@ -7,10 +7,17 @@ Lives at **tools.myblumberg.com/grocery/**
 ## Architecture
 
 ```
-[Email] → [Cloudflare Worker] → [FastAPI :8001] → [SQLite]
-                                        ↕
-                             [Static frontend at /grocery/]
+[Grocery Gmail inbox] → [make.com scenario] → [FastAPI :8001] → [SQLite]
+                                                     ↕
+                                      [Static frontend at /grocery/]
 ```
+
+Live ingestion is **push via make.com**: emails land in a Gmail inbox, a make.com
+scenario polls Gmail (~15 min) and POSTs each message to `/inbound-email`. The
+Cloudflare Worker in `worker/index.js` is an alternative receiver for the same
+endpoint and is **not currently deployed** — kept as a fallback. The backend can
+also **pull** Gmail directly over IMAP (see below), mainly for the on-demand
+"Check mail now" button.
 
 ## Deployment (Droplet)
 
@@ -76,7 +83,30 @@ Copy `.env.example` to `.env` and fill in values:
 ANTHROPIC_API_KEY=    # from console.anthropic.com
 WORKER_SECRET=        # generate a random string, e.g.: openssl rand -hex 32
 DATABASE_PATH=./data/grocery.db
+
+# Mailbox polling — powers the "Check mail now" button. Leave blank to disable.
+IMAP_HOST=            # e.g. outlook.office365.com
+IMAP_USER=            # grocery@myblumberg.com
+IMAP_PASSWORD=        # mailbox / app password
+IMAP_PORT=993
+IMAP_FOLDER=INBOX
+IMAP_SSL=true
+POLL_INTERVAL_MINUTES=15   # auto-pull cadence; 0 disables the scheduled poll
 ```
+
+### Mail ingestion: push + pull
+
+The live path is **push via make.com** — Gmail inbox → make.com scenario →
+`POST /inbound-email` (the Cloudflare Worker is an unused alternative receiver).
+The backend can also **pull** the same Gmail inbox over IMAP:
+
+- **Scheduled pull** — a background task started at app startup polls every
+  `POLL_INTERVAL_MINUTES` (default 15). Set `POLL_INTERVAL_MINUTES=0` to disable it.
+- **On-demand pull** — `POST /grocery/api/check-mail` (the "Check mail now" button)
+  runs the same poll immediately.
+
+Both read only **unseen** messages and mark them seen, so push and pull can't
+double-add the same email.
 
 ## Local Development
 

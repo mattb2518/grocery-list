@@ -88,9 +88,22 @@ main {
 }
 .item-row:last-child { border-bottom: none; }
 
+.item-check {
+  width: 18px;
+  height: 18px;
+  accent-color: #1a1a2e;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
 .item-name {
   flex: 1;
   font-size: 15px;
+}
+
+.item-row.checked .item-name {
+  text-decoration: line-through;
+  color: #aaa;
 }
 
 .item-meta {
@@ -119,10 +132,25 @@ main {
   font-style: italic;
 }
 
+/* ── Refresh / check-mail row ── */
+.refresh-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.refresh-status {
+  font-size: 13px;
+  color: #888;
+}
+
 /* ── Archive button row ── */
 .archive-row {
   margin-top: 20px;
-  text-align: center;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 /* ── Buttons ── */
