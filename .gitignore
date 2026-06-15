@@ -1,5 +1,7 @@
 .env
 data/grocery.db
+data/grocery.db-wal
+data/grocery.db-shm
 __pycache__/
 *.pyc
 *.pyo
