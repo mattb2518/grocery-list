@@ -150,31 +150,73 @@ function startEdit(item, nameEl) {
   input.className = 'item-edit-input';
   input.value = item.name;
   nameEl.replaceWith(input);
+  const li = input.closest('.item-row');
   input.focus();
   input.select();
 
   let done = false;
+
+  const saveNameIfChanged = async () => {
+    const newName = input.value.trim();
+    if (!newName || newName === item.name) return;
+    try {
+      const res = await fetch(`${API}/item/${item.id}/edit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName })
+      });
+      if (!res.ok) throw new Error();
+      item.name = newName;
+      clearError();
+    } catch {
+      showError('Could not save edit.');
+    }
+  };
+
+  // Category chips: tap one to move the item to that section.
+  const catBar = document.createElement('div');
+  catBar.className = 'item-cat-edit';
+  for (const cat of CATEGORIES) {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'cat-chip' + (cat.key === item.category ? ' active' : '');
+    chip.innerHTML = `<span class="emoji">${cat.emoji}</span>${cat.label}`;
+    // Act on click but keep the rename input focused so its blur-save
+    // doesn't race with (and tear down) the chip before the click lands.
+    chip.addEventListener('pointerdown', (e) => e.preventDefault());
+    chip.addEventListener('click', () => chooseCategory(cat.key));
+    catBar.appendChild(chip);
+  }
+  li.appendChild(catBar);
+
   const finish = async (save) => {
     if (done) return;
     done = true;
-    const newName = input.value.trim();
     editingItemId = null;
-    if (save && newName && newName !== item.name) {
-      try {
-        const res = await fetch(`${API}/item/${item.id}/edit`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: newName })
-        });
-        if (!res.ok) throw new Error();
-        item.name = newName;
-        clearError();
-      } catch {
-        showError('Could not save edit.');
-      }
-    }
+    if (save) await saveNameIfChanged();
+    catBar.remove();
     nameEl.textContent = item.name;
     input.replaceWith(nameEl);
+  };
+
+  const chooseCategory = async (key) => {
+    if (done) return;
+    if (key === item.category) { finish(true); return; }  // no change
+    done = true;
+    editingItemId = null;
+    await saveNameIfChanged();
+    try {
+      const res = await fetch(`${API}/item/${item.id}/category`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category: key })
+      });
+      if (!res.ok) throw new Error();
+      clearError();
+    } catch {
+      showError('Could not move item.');
+    }
+    await loadList();   // re-render: the item now lives in its new section
   };
 
   input.addEventListener('keydown', (e) => {

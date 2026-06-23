@@ -12,13 +12,8 @@ def is_configured() -> bool:
     return bool(os.getenv("IMAP_HOST") and os.getenv("IMAP_USER") and os.getenv("IMAP_PASSWORD"))
 
 
-def fetch_unseen() -> list[dict]:
-    """Connect to the grocery mailbox over IMAP, read all unseen messages,
-    mark them as seen, and return a list of {sender, subject, body} dicts.
-
-    Marking messages as seen means this can be run on demand without
-    reprocessing mail an existing cron poller has already handled.
-    """
+def _open_mailbox():
+    """Connect, log in, and select the configured folder. Caller must logout."""
     host = os.getenv("IMAP_HOST")
     user = os.getenv("IMAP_USER")
     password = os.getenv("IMAP_PASSWORD")
@@ -26,41 +21,68 @@ def fetch_unseen() -> list[dict]:
         raise RuntimeError(
             "Mailbox polling is not configured (set IMAP_HOST, IMAP_USER, IMAP_PASSWORD)"
         )
-
     port = int(os.getenv("IMAP_PORT", "993"))
     folder = os.getenv("IMAP_FOLDER", "INBOX")
     use_ssl = os.getenv("IMAP_SSL", "true").lower() != "false"
-
     M = imaplib.IMAP4_SSL(host, port) if use_ssl else imaplib.IMAP4(host, port)
+    M.login(user, password)
+    M.select(folder)
+    return M
+
+
+def _close(M):
+    try:
+        M.close()
+    except Exception:
+        pass
+    try:
+        M.logout()
+    except Exception:
+        pass
+
+
+def fetch_unseen() -> list[dict]:
+    """Read all unseen messages WITHOUT marking them seen, returning a list of
+    {uid, sender, subject, body} dicts.
+
+    Crucially, this PEEKs (BODY.PEEK) rather than consuming the messages, so a
+    downstream failure (e.g. the categorizer being unavailable) leaves the mail
+    unread and retryable. Marking seen is the caller's job via mark_seen(),
+    done only after a message has been successfully ingested.
+    """
+    M = _open_mailbox()
     messages: list[dict] = []
     try:
-        M.login(user, password)
-        M.select(folder)
-        typ, data = M.search(None, "UNSEEN")
-        if typ != "OK":
+        typ, data = M.uid("SEARCH", None, "UNSEEN")
+        if typ != "OK" or not data or not data[0]:
             return []
-        for num in data[0].split():
-            typ, msg_data = M.fetch(num, "(RFC822)")
+        for uid in data[0].split():
+            typ, msg_data = M.uid("FETCH", uid, "(BODY.PEEK[])")
             if typ != "OK" or not msg_data or not msg_data[0]:
                 continue
             msg = email.message_from_bytes(msg_data[0][1])
             messages.append({
+                "uid": uid.decode() if isinstance(uid, bytes) else uid,
                 "sender": parseaddr(msg.get("From", ""))[1],
                 "subject": _decode_header(msg.get("Subject", "")),
                 "body": _extract_body(msg),
             })
-            M.store(num, "+FLAGS", "\\Seen")
     finally:
-        try:
-            M.close()
-        except Exception:
-            pass
-        try:
-            M.logout()
-        except Exception:
-            pass
-
+        _close(M)
     return messages
+
+
+def mark_seen(uids: list[str]) -> None:
+    """Mark the given message UIDs as \\Seen. Called after successful ingest so
+    only mail we've actually processed is consumed."""
+    if not uids:
+        return
+    M = _open_mailbox()
+    try:
+        for uid in uids:
+            M.uid("STORE", uid, "+FLAGS", "(\\Seen)")
+    finally:
+        _close(M)
 
 
 def _decode_header(value: str) -> str:

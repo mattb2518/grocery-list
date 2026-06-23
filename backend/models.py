@@ -26,6 +26,10 @@ class EditRequest(BaseModel):
     name: str
 
 
+class CategoryRequest(BaseModel):
+    category: str
+
+
 class Item(BaseModel):
     id: int
     name: str

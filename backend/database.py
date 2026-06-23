@@ -5,6 +5,11 @@ from datetime import datetime, timezone
 DATABASE_PATH = os.getenv("DATABASE_PATH", "./data/grocery.db")
 
 
+def _norm_name(name: str) -> str:
+    """Normalize an item name to a stable lookup key (lowercase, collapsed spaces)."""
+    return " ".join(str(name).strip().lower().split())
+
+
 def get_connection():
     os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
     conn = sqlite3.connect(DATABASE_PATH)
@@ -32,6 +37,14 @@ def init_db():
                 submitted_at DATETIME NOT NULL,
                 list_id INTEGER NOT NULL,
                 checked INTEGER DEFAULT 0
+            );
+
+            -- Learned categorizations: when a user re-files an item, we remember
+            -- it here and re-apply / teach it on future ingests.
+            CREATE TABLE IF NOT EXISTS category_overrides (
+                name_key TEXT PRIMARY KEY,
+                category TEXT NOT NULL,
+                updated_at DATETIME NOT NULL
             );
         """)
         # Ensure there is always one active list
@@ -128,6 +141,67 @@ def update_item_name(conn, item_id: int, name: str):
     )
     conn.commit()
     return result.rowcount > 0
+
+
+def update_item_category(conn, item_id: int, category: str):
+    active = get_active_list(conn)
+    result = conn.execute(
+        "UPDATE items SET category = ? WHERE id = ? AND list_id = ?",
+        (category, item_id, active["id"])
+    )
+    conn.commit()
+    return result.rowcount > 0
+
+
+def record_category_override(conn, name: str, category: str):
+    """Remember that this item name belongs in `category`, so future ingests of
+    the same item are filed correctly and Claude can learn from the correction."""
+    key = _norm_name(name)
+    if not key:
+        return
+    now = datetime.now(timezone.utc).isoformat()
+    conn.execute(
+        """
+        INSERT INTO category_overrides (name_key, category, updated_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT(name_key) DO UPDATE SET
+            category = excluded.category,
+            updated_at = excluded.updated_at
+        """,
+        (key, category, now)
+    )
+    conn.commit()
+
+
+def get_category_overrides(conn) -> dict:
+    """All learned name→category corrections, keyed by normalized name."""
+    return {
+        row["name_key"]: row["category"]
+        for row in conn.execute(
+            "SELECT name_key, category FROM category_overrides"
+        ).fetchall()
+    }
+
+
+def get_recent_overrides(conn, limit: int = 40) -> list[dict]:
+    """Most-recent corrections, as examples to teach the categorizer."""
+    rows = conn.execute(
+        "SELECT name_key, category FROM category_overrides ORDER BY updated_at DESC LIMIT ?",
+        (limit,)
+    ).fetchall()
+    return [{"name": r["name_key"], "category": r["category"]} for r in rows]
+
+
+def apply_category_overrides(conn, items: list[dict]) -> list[dict]:
+    """Force any item whose name has a learned correction into that category."""
+    overrides = get_category_overrides(conn)
+    if not overrides:
+        return items
+    for item in items:
+        key = _norm_name(item.get("name", ""))
+        if key in overrides:
+            item["category"] = overrides[key]
+    return items
 
 
 def set_item_checked(conn, item_id: int, checked: bool):

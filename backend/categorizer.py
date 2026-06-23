@@ -13,8 +13,16 @@ item has a "name" (cleaned, normalized) and "category" (one of: pantry, produce,
 meat, dairy, frozen, deli). Return ONLY valid JSON, no explanation, no markdown."""
 
 
-def categorize_items(body: str, sender: str, subject: str = "") -> list[dict]:
+def categorize_items(body: str, sender: str, subject: str = "", examples: list[dict] | None = None) -> list[dict]:
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+    system = SYSTEM_PROMPT
+    if examples:
+        mappings = "\n".join(f"- {e['name']} → {e['category']}" for e in examples)
+        system += (
+            "\n\nThis household has corrected past categorizations. Prefer these "
+            "mappings, and apply the same reasoning to similar items:\n" + mappings
+        )
 
     # Combine subject and body — items are often in the subject line
     parts = []
@@ -29,7 +37,7 @@ def categorize_items(body: str, sender: str, subject: str = "") -> list[dict]:
     message = client.messages.create(
         model="claude-sonnet-4-5",
         max_tokens=1024,
-        system=SYSTEM_PROMPT,
+        system=system,
         messages=[{"role": "user", "content": user_message}]
     )
 

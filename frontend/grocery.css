@@ -82,6 +82,7 @@ main {
 .item-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   padding: 10px 16px;
   border-bottom: 1px solid #f5f5f5;
   gap: 10px;
@@ -147,6 +148,39 @@ main {
   border-radius: 6px;
   outline: none;
   min-width: 0;
+}
+
+/* Category chips shown under an item while editing (re-categorize) */
+.item-cat-edit {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+  padding-left: 28px;   /* line up under the name, past the checkbox */
+}
+
+.cat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-family: inherit;
+  padding: 5px 10px;
+  border: 1px solid #ddd;
+  border-radius: 999px;
+  background: white;
+  color: #555;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.cat-chip .emoji { font-size: 13px; }
+.cat-chip:hover { background: #f5f5f5; }
+.cat-chip.active {
+  background: #1a1a2e;
+  border-color: #1a1a2e;
+  color: white;
+  cursor: default;
 }
 
 .empty-state {

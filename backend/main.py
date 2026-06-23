@@ -14,20 +14,22 @@ load_dotenv()
 from database import (
     init_db, get_connection, get_active_list, get_items_for_list,
     insert_items, archive_active_list, archive_checked_items,
-    set_item_checked, update_item_name, get_archived_lists,
-    get_archived_list, copy_items_to_active, delete_item
+    set_item_checked, update_item_name, update_item_category, get_archived_lists,
+    get_archived_list, copy_items_to_active, delete_item,
+    record_category_override, get_recent_overrides, apply_category_overrides
 )
 from models import (
     InboundEmail, ArchiveRequest, AddItemsRequest, CheckRequest, EditRequest,
-    ActiveList, ArchivedListSummary, ArchivedListDetail, Item
+    CategoryRequest, ActiveList, ArchivedListSummary, ArchivedListDetail, Item
 )
 from categorizer import categorize_items
-from mail_poller import fetch_unseen, is_configured as mailbox_configured
+from mail_poller import fetch_unseen, mark_seen, is_configured as mailbox_configured
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 WORKER_SECRET = os.getenv("WORKER_SECRET", "")
+VALID_CATEGORIES = {"pantry", "produce", "meat", "dairy", "frozen", "deli"}
 POLL_INTERVAL_MINUTES = int(os.getenv("POLL_INTERVAL_MINUTES", "15"))
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 
@@ -71,22 +73,41 @@ app = FastAPI(lifespan=lifespan)
 
 def _ingest_message(conn, list_id: int, sender: str, subject: str, body: str) -> int:
     """Categorize one email and add its items to a list. Returns items added."""
-    items = categorize_items(body, sender, subject)
+    items = categorize_items(body, sender, subject, get_recent_overrides(conn))
     if not items:
         return 0
+    apply_category_overrides(conn, items)
     return insert_items(conn, items, list_id, _extract_name(sender))
 
 
 def ingest_unseen_mail() -> dict:
     """Pull all unseen mail from the mailbox and add its items. Blocking —
-    call directly from sync request handlers or via asyncio.to_thread."""
+    call directly from sync request handlers or via asyncio.to_thread.
+
+    Messages are only marked seen after they ingest successfully, so a transient
+    failure (e.g. the categorizer being down) leaves them unread for retry
+    instead of silently dropping the email."""
     messages = fetch_unseen()
     total = 0
+    errors = 0
+    processed_uids = []
     with get_connection() as conn:
         active = get_active_list(conn)
         for m in messages:
-            total += _ingest_message(conn, active["id"], m["sender"], m["subject"], m["body"])
-    return {"messages_processed": len(messages), "items_added": total}
+            try:
+                total += _ingest_message(conn, active["id"], m["sender"], m["subject"], m["body"])
+                processed_uids.append(m["uid"])
+            except Exception:
+                errors += 1
+                logger.exception(
+                    "Failed to ingest message uid=%s; leaving it unread to retry", m.get("uid")
+                )
+    if processed_uids:
+        try:
+            mark_seen(processed_uids)
+        except Exception:
+            logger.exception("Ingested %d message(s) but failed to mark them seen", len(processed_uids))
+    return {"messages_processed": len(processed_uids), "items_added": total, "errors": errors}
 
 
 def _row_to_item(row) -> Item:
@@ -127,6 +148,11 @@ def check_mail():
     except Exception as e:
         logger.exception("Mailbox poll failed")
         raise HTTPException(status_code=502, detail=f"Could not read mailbox: {e}")
+    if result["errors"] and not result["messages_processed"]:
+        raise HTTPException(
+            status_code=502,
+            detail="Categorizer unavailable — emails left unread, try again shortly"
+        )
     return {"success": True, **result}
 
 
@@ -172,6 +198,21 @@ def edit_item(item_id: int, req: EditRequest):
         ok = update_item_name(conn, item_id, name)
     if not ok:
         raise HTTPException(status_code=404, detail="Item not found in active list")
+    return {"success": True}
+
+
+@app.post("/api/item/{item_id}/category")
+def recategorize_item(item_id: int, req: CategoryRequest):
+    category = req.category.strip().lower()
+    if category not in VALID_CATEGORIES:
+        raise HTTPException(status_code=400, detail="Invalid category")
+    with get_connection() as conn:
+        ok = update_item_category(conn, item_id, category)
+        if not ok:
+            raise HTTPException(status_code=404, detail="Item not found in active list")
+        row = conn.execute("SELECT name FROM items WHERE id = ?", (item_id,)).fetchone()
+        if row:
+            record_category_override(conn, row["name"], category)
     return {"success": True}
 
 
