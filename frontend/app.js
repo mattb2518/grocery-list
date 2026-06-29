@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadArchived();
   startPolling();
 
+  document.getElementById('add-item-form').addEventListener('submit', addItem);
   document.getElementById('check-mail-btn').addEventListener('click', checkMail);
   document.getElementById('archive-all-btn').addEventListener('click', () => showModal(false));
   document.getElementById('archive-checked-btn').addEventListener('click', () => showModal(true));
@@ -289,6 +290,31 @@ async function toggleChecked(id, checked, el) {
     const box = el.querySelector('.item-check');
     if (box) box.checked = !checked;
     showError('Could not update item.');
+  }
+}
+
+async function addItem(e) {
+  e.preventDefault();
+  const input = document.getElementById('add-item-input');
+  const name = input.value.trim();
+  if (!name) return;
+  const btn = e.target.querySelector('button[type="submit"]');
+  btn.disabled = true;
+  try {
+    const res = await fetch(`${API}/add-item`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, submitted_by: 'web' })
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Could not add item.');
+    input.value = '';
+    clearError();
+    await loadList();
+  } catch (err) {
+    showError(err.message);
+  } finally {
+    btn.disabled = false;
+    input.focus();
   }
 }
 

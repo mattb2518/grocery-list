@@ -55,6 +55,27 @@ main {
   font-size: 14px;
 }
 
+/* ── Add item bar ── */
+.add-item-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.add-item-input {
+  flex: 1;
+  font-size: 15px;
+  font-family: inherit;
+  padding: 8px 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  outline: none;
+  background: white;
+  transition: border-color 0.15s;
+  min-width: 0;
+}
+.add-item-input:focus { border-color: #1a1a2e; }
+
 /* ── Category sections ── */
 .category-section {
   background: white;

@@ -18,6 +18,11 @@ class AddItemsRequest(BaseModel):
     item_ids: list[int]
 
 
+class AddItemRequest(BaseModel):
+    name: str
+    submitted_by: str = "web"
+
+
 class CheckRequest(BaseModel):
     checked: bool
 

@@ -6,7 +6,7 @@
   <title>Grocery List</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="stylesheet" href="/shared.css">
-  <link rel="stylesheet" href="/grocery/grocery.css?v=20260623">
+  <link rel="stylesheet" href="/grocery/grocery.css?v=20260629">
 </head>
 <body>
   <nav class="tools-nav">
@@ -24,6 +24,10 @@
         <button id="check-mail-btn" class="btn btn-secondary btn-sm">↻ Check mail now</button>
         <span id="refresh-status" class="refresh-status"></span>
       </div>
+      <form id="add-item-form" class="add-item-bar">
+        <input id="add-item-input" type="text" class="add-item-input" placeholder="Add an item…" autocomplete="off">
+        <button type="submit" class="btn btn-primary btn-sm">Add</button>
+      </form>
       <div id="categories-container"></div>
       <div class="archive-row">
         <button id="archive-checked-btn" class="btn btn-secondary">Archive checked items</button>
@@ -63,6 +67,6 @@
     </div>
   </div>
 
-  <script src="/grocery/app.js?v=20260623"></script>
+  <script src="/grocery/app.js?v=20260629"></script>
 </body>
 </html>

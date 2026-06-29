@@ -19,7 +19,7 @@ from database import (
     record_category_override, get_recent_overrides, apply_category_overrides
 )
 from models import (
-    InboundEmail, ArchiveRequest, AddItemsRequest, CheckRequest, EditRequest,
+    InboundEmail, ArchiveRequest, AddItemsRequest, AddItemRequest, CheckRequest, EditRequest,
     CategoryRequest, ActiveList, ArchivedListSummary, ArchivedListDetail, Item
 )
 from categorizer import categorize_items
@@ -264,6 +264,21 @@ def add_items(req: AddItemsRequest):
     with get_connection() as conn:
         count = copy_items_to_active(conn, req.item_ids)
     return {"success": True, "items_added": count}
+
+
+@app.post("/api/add-item")
+def add_item(req: AddItemRequest):
+    name = req.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Item name is required")
+    with get_connection() as conn:
+        active = get_active_list(conn)
+        items = categorize_items(name, req.submitted_by, "", get_recent_overrides(conn))
+        if not items:
+            items = [{"name": name, "category": "pantry"}]
+        apply_category_overrides(conn, items)
+        count = insert_items(conn, items, active["id"], req.submitted_by)
+    return {"success": True, "items_added": count, "items": items}
 
 
 @app.delete("/api/item/{item_id}")
