@@ -26,6 +26,7 @@ Items are sorted into exactly six buckets:
 - **Frozen** — anything frozen
 - **Deli** — deli meats, prepared foods, cheeses from the deli counter
 
+Item names are stored exactly as written in the original message — quantities, notes, and qualifiers (whether they appear before or after the item name) are preserved verbatim.
 ## Key Features
 - Email-based input (freeform natural language)
 - Submitter attribution on each item

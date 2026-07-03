@@ -4,6 +4,8 @@ Append-only. New entries go at the top. Format: `## YYYY-MM-DD — Title`
 
 ---
 
+## 2026-07-03 — Preserve full item text on categorization
+The original categorizer prompt told Claude to return a cleaned, normalized name, which stripped quantities, notes, and qualifiers (e.g. "Lemons (4)" became "Lemons", "Corn – 15-ish ears" became "Corn"). Changed the prompt to explicitly instruct Claude to preserve the complete original line exactly as written, regardless of whether extra text appears before or after the item name. This is more useful for shoppers and avoids lossy parsing.
 ## 2026-06-30 — Established GitHub as canonical source of truth
 SPEC.md, DECISIONS.md, and docs/working-instructions.md added to repo.
 Workflow: spec/design in Claude.ai chat → written to GitHub → Claude Code reads

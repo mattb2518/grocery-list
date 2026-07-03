@@ -9,7 +9,7 @@ VALID_CATEGORIES = {"pantry", "produce", "meat", "dairy", "frozen", "deli"}
 
 SYSTEM_PROMPT = """You are a grocery categorization assistant. Given a freeform message \
 containing grocery items, extract each item and return a JSON array where each \
-item has a "name" (cleaned, normalized) and "category" (one of: pantry, produce, \
+item has a "name" (the complete original text for that item, exactly as written — preserve all quantities, notes, qualifiers, and comments whether they appear before or after the item name) and "category" (one of: pantry, produce, \
 meat, dairy, frozen, deli). Return ONLY valid JSON, no explanation, no markdown."""
 
 
