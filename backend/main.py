@@ -19,7 +19,7 @@ from database import (
     get_archived_list, copy_items_to_active, delete_item,
     record_category_override, get_recent_overrides, apply_category_overrides,
     update_item_probably_have, insert_recipe, get_recipes_for_list,
-    delete_recipe, archive_recipe_row,
+    delete_recipe, archive_recipe_row, get_library_recipes,
 )
 from models import (
     InboundEmail, ArchiveRequest, AddItemsRequest, AddItemRequest, CheckRequest, EditRequest,
@@ -292,6 +292,13 @@ def remove_recipe(recipe_id: int):
     if not ok:
         raise HTTPException(status_code=404, detail="Recipe not found")
     return {"success": True}
+
+
+@app.get("/api/recipes/library", response_model=list[Recipe])
+def get_recipe_library():
+    with get_connection() as conn:
+        rows = get_library_recipes(conn)
+    return [_row_to_recipe(r) for r in rows]
 
 
 @app.post("/api/recipe/{recipe_id}/archive")

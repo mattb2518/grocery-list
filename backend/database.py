@@ -119,6 +119,11 @@ def archive_active_list(conn, label: str | None = None):
         "INSERT INTO lists (status, created_at) VALUES ('active', ?)",
         (now,)
     )
+    # Sweep this trip's recipes into the Library so they're never stranded.
+    conn.execute(
+        "UPDATE recipes SET archived = 1 WHERE list_id = ? AND archived = 0",
+        (active["id"],),
+    )
     conn.commit()
     return active["id"]
 
@@ -313,3 +318,9 @@ def archive_recipe_row(conn, recipe_id: int) -> bool:
     result = conn.execute("UPDATE recipes SET archived = 1 WHERE id = ?", (recipe_id,))
     conn.commit()
     return result.rowcount > 0
+
+
+def get_library_recipes(conn):
+    return conn.execute(
+        "SELECT * FROM recipes WHERE archived = 1 ORDER BY created_at DESC"
+    ).fetchall()

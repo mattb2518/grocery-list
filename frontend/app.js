@@ -29,6 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('modal-confirm').addEventListener('click', confirmArchive);
   document.getElementById('pick-cancel').addEventListener('click', hidePickModal);
   document.getElementById('pick-confirm').addEventListener('click', confirmPickItems);
+  document.getElementById('library-btn').addEventListener('click', openLibrary);
+  document.getElementById('library-close').addEventListener('click', closeLibrary);
 });
 
 function startPolling() {
@@ -245,9 +247,9 @@ function renderRecipeEntry(recipe) {
   meta.textContent = recipe.submitter;
 
   const archiveBtn = document.createElement('button');
-  archiveBtn.className = 'btn btn-secondary btn-sm recipe-action-btn';
-  archiveBtn.title = 'Archive this recipe';
-  archiveBtn.textContent = 'Archive';
+  archiveBtn.className = 'recipe-lib-btn';
+  archiveBtn.title = 'Send to Recipe Library';
+  archiveBtn.textContent = '📥';
   archiveBtn.addEventListener('click', () => archiveRecipe(recipe.id, row));
 
   const removeBtn = document.createElement('button');
@@ -432,9 +434,84 @@ async function archiveRecipe(id, el) {
     el.remove();
     const container = document.getElementById('recipes-container');
     if (!container.querySelector('.recipe-row')) container.innerHTML = '';
+    // Keep Library in sync if it's open
+    if (document.getElementById('library-modal-overlay').style.display !== 'none') {
+      await refreshLibraryList();
+    }
   } catch {
-    showError('Could not archive recipe.');
+    showError('Could not send recipe to Library.');
   }
+}
+
+async function openLibrary() {
+  const listEl = document.getElementById('library-list');
+  listEl.innerHTML = '<div class="library-loading">Loading…</div>';
+  document.getElementById('library-modal-overlay').style.display = 'flex';
+  await refreshLibraryList();
+}
+
+function closeLibrary() {
+  document.getElementById('library-modal-overlay').style.display = 'none';
+}
+
+async function refreshLibraryList() {
+  const listEl = document.getElementById('library-list');
+  try {
+    const res = await fetch(`${API}/recipes/library`);
+    if (!res.ok) throw new Error();
+    const recipes = await res.json();
+    listEl.innerHTML = '';
+    if (recipes.length === 0) {
+      listEl.innerHTML = '<div class="library-empty">No recipes yet. Send one from This week\'s recipes.</div>';
+      return;
+    }
+    for (const recipe of recipes) {
+      listEl.appendChild(renderLibraryEntry(recipe));
+    }
+  } catch {
+    listEl.innerHTML = '<div class="library-loading" style="color:#c00">Could not load recipes.</div>';
+  }
+}
+
+function renderLibraryEntry(recipe) {
+  const row = document.createElement('div');
+  row.className = 'library-row';
+  row.dataset.id = recipe.id;
+
+  const link = document.createElement('a');
+  link.href = recipe.url;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.className = 'recipe-url';
+  link.textContent = recipe.url;
+
+  const meta = document.createElement('span');
+  meta.className = 'item-meta';
+  meta.textContent = recipe.submitter;
+
+  const del = document.createElement('button');
+  del.className = 'delete-btn';
+  del.title = 'Permanently delete';
+  del.textContent = '×';
+  del.addEventListener('click', async () => {
+    if (!confirm('Permanently delete this recipe from the Library?')) return;
+    try {
+      const res = await fetch(`${API}/recipe/${recipe.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      row.remove();
+      const listEl = document.getElementById('library-list');
+      if (!listEl.querySelector('.library-row')) {
+        listEl.innerHTML = '<div class="library-empty">No recipes yet. Send one from This week\'s recipes.</div>';
+      }
+    } catch {
+      showError('Could not delete recipe.');
+    }
+  });
+
+  row.appendChild(link);
+  row.appendChild(meta);
+  row.appendChild(del);
+  return row;
 }
 
 async function toggleChecked(id, checked, el) {

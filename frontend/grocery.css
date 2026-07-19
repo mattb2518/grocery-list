@@ -489,6 +489,61 @@ details[open] .pantry-check-toggle::before { transform: rotate(90deg); }
 }
 .recipe-url:hover { opacity: 0.75; }
 
-.recipe-action-btn {
+.recipe-lib-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
   flex-shrink: 0;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+.recipe-lib-btn:hover { opacity: 1; }
+
+/* ── Recipe Library modal ── */
+.library-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.library-close-btn {
+  background: none;
+  border: none;
+  font-size: 22px;
+  color: #aaa;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+.library-close-btn:hover { color: #333; }
+
+.library-list {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #eee;
+  border-radius: 8px;
+}
+
+.library-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #f5f5f5;
+  flex-wrap: wrap;
+}
+.library-row:last-child { border-bottom: none; }
+
+.library-loading,
+.library-empty {
+  padding: 20px 14px;
+  color: #999;
+  font-size: 14px;
+  text-align: center;
 }

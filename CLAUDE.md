@@ -82,7 +82,7 @@ CREATE TABLE recipes (
     archived INTEGER DEFAULT 0,
     created_at DATETIME NOT NULL
 );
-Logged whenever a recipe URL is emailed — before parsing, so success and failure both get a record. archived=1 hides it from the active view.
+Logged whenever a recipe URL is emailed — before parsing, so success and failure both get a record. archived=0 = on the active trip's This Week's Recipes; archived=1 = in the Recipe Library (permanent, cross-list). archive_active_list() sweeps the trip's archived=0 recipes to archived=1 automatically. archive_checked_items() does NOT sweep recipes — the active trip continues.
 There is always exactly one active list. Archiving creates a new active list.
 Categories
 Items must be sorted into exactly one of these six buckets:
@@ -109,8 +109,9 @@ POST /api/add-items — adds specific items (by id) from an archived list to the
 POST /api/add-item — adds a single item directly from the web UI ({name: str, submitted_by: str}); runs through the categorizer (with override lookup) and dedupes
 DELETE /api/item/{item_id} — removes item from active list
 POST /api/item/{item_id}/probably-have — sets probably_have on an active-list item ({probably_have: bool}); setting false moves it from Pantry Check zone to the main list
-DELETE /api/recipe/{recipe_id} — hard-deletes a recipe log entry (the '×' button)
-POST /api/recipe/{recipe_id}/archive — sets archived=1 on a recipe log entry; it disappears from the active view
+DELETE /api/recipe/{recipe_id} — permanently deletes a recipe (works for both active and Library entries)
+POST /api/recipe/{recipe_id}/archive — sets archived=1; sends the recipe from This Week's Recipes into the Recipe Library
+GET /api/recipes/library — returns all recipes with archived=1 across all list_ids, newest first (powers the Library view)
 Security
 The /api/inbound-email endpoint requires X-Worker-Secret header matching .env value
 All other endpoints unauthenticated in v1
