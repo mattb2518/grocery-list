@@ -17,4 +17,5 @@ jobs:
           script: |
             cd /opt/grocery-list
             git pull origin main
+            pip install -q -r backend/requirements.txt
             sudo systemctl restart grocery-list
