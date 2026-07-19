@@ -17,5 +17,7 @@ jobs:
           script: |
             cd /opt/grocery-list
             git pull origin main
-            pip install -q -r backend/requirements.txt
+            python3 -m pip install -q -r backend/requirements.txt
             sudo systemctl restart grocery-list
+            sleep 3
+            sudo systemctl is-active grocery-list || sudo journalctl -u grocery-list -n 30 --no-pager
