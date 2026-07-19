@@ -43,7 +43,15 @@ These six are store-section categories (where an item lives in the store). 'Prob
 ## This Week's Recipes
 - A reference list below the items shows every recipe URL emailed into the active list — logged whether or not the parse succeeded. It is a simple log: it does NOT link to the parsed ingredients.
 - Each entry: the URL as a clickable link (opens in a new tab), an 'x' to remove it outright, and an archive control that archives it with the list using the same mechanism items use.
-- Removing (x) deletes only the logged link. Archiving carries it into the archived list like any item.
+- Removing (x) permanently deletes the logged link. The archive control (open box) sends the recipe to the Recipe Library — a permanent home independent of any grocery list.
+- When a whole grocery list is archived, its current recipes are swept into the Library automatically, so they are never stranded. (Checked-items-only archiving does not move recipes — the active trip continues.)
+
+## Recipe Library
+- A permanent archive of every recipe URL that has been sent to the Library, across all trips, newest first. Recipes outlive the grocery list they arrived on.
+- Opened from a 'Recipes' button in an obvious spot on the main screen.
+- A recipe enters the Library two ways: the per-recipe archive (open box) control, or automatically when its whole grocery list is archived.
+- Library is view + permanent-delete only in v0. Each entry: the URL as a clickable link (new tab), the submitter, and an 'x' to permanently delete it. Pulling a recipe back onto the active list is a deferred v1 follow-up.
+- Failed-parse URLs live in the Library too — the link is preserved even when ingredients could not be read.
 
 ## Key Features
 - Email-based input (freeform natural language)
@@ -55,7 +63,8 @@ These six are store-section categories (where an item lives in the store). 'Prob
 - Mobile-first responsive UI using `shared.css` + `grocery.css`
 - Recipe import via emailed URL
 - Pantry Check zone — collapsed, default off; tap an item to move it to the main list
-- This Week's Recipes — reference log of emailed recipe URLs (clickable, removable, archives with the list)
+- This Week's Recipes — reference log of the active trip's recipe URLs (clickable, removable, or send to the Recipe Library)
+- Recipe Library — permanent cross-trip archive of recipe URLs, opened from a button on the main screen
 
 ## Architecture
 - **Hosting:** Digital Ocean droplet (same as tools-directory and relationship intelligence app)
@@ -68,8 +77,8 @@ These six are store-section categories (where an item lives in the store). 'Prob
 - **Frontend:** Static HTML/JS (`frontend/index.html`, `frontend/app.js`)
 - **Styles:** `shared.css` (from `/var/www/tools/shared.css`) + `frontend/grocery.css`
 - **AI:** Anthropic Claude API (item categorization, called from backend)
-- **Source control:** GitHub (`mattb2518/grocery-list`, private)
-- New recipes table (reference log, not linked to items): id, list_id, url, submitter, archived (default 0), created_at
+- **Source control:** GitHub (`mattb2518/grocery-list`, public)
+- Recipes table (reference log, not linked to items): id, list_id, url, submitter, archived, created_at. archived = 0 means the recipe is on the active trip's This Week's Recipes; archived = 1 means it lives in the permanent, cross-list Recipe Library.
 - Items table: gains probably_have (bool, default false)
 
 ## Live Email Path

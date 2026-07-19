@@ -4,7 +4,18 @@ Append-only. New entries go at the top. Format: `## YYYY-MM-DD — Title`
 
 ---
 
-## Recipe import + Pantry Check zone + This Week's Recipes
+## 2026-07-19 — Recipe Library (recipes outlive their list)
+
+Decision: Recipes get a permanent home independent of grocery lists, revising the earlier 'archive = hidden forever' behavior.
+- Problem: archived recipes were invisible everywhere — a soft-delete with no recall — and the archived-list view never showed them, contradicting the spec. A recipe cooked months ago is still worth reaching for.
+- Fix: the per-recipe archive (open box) control now sends a recipe to a Recipe Library — a permanent, cross-list collection reached from a button on the main screen. 'x' still permanently deletes.
+- This is a separate screen, NOT a seventh grocery category. Same discipline as the pantry-check zone: the six store-section categories stay clean.
+- Archiving a whole grocery list sweeps its current recipes into the Library automatically, so finishing a trip never strands its recipes. Checked-items-only archiving leaves recipes on the still-active trip.
+- No schema change: archived = 1 is reinterpreted as 'in the Library'; one new read returns all archived recipes across every list_id.
+- v0 is view + permanent-delete only. Restore-to-active-list is a deliberate deferral to keep scope bounded.
+- Failed-parse URLs live in the Library too, consistent with logging the URL regardless of parse success.
+
+## 2026-07-19 — Recipe import + Pantry Check zone + This Week's Recipes
 
 Decision: Added recipe import via emailed URL, a 'Pantry Check — probably have' zone, and a 'This Week's Recipes' reference log.
 - 'Probably have already' is a status (probably_have), not a seventh category. The six categories answer 'where in the store'; probably-have answers 'do I need to buy it.' Salt is both, so a peer category would force a misclassification. Keeping it orthogonal removes that conflict.
