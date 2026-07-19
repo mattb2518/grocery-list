@@ -35,6 +35,10 @@ class CategoryRequest(BaseModel):
     category: str
 
 
+class ProbablyHaveRequest(BaseModel):
+    probably_have: bool
+
+
 class Item(BaseModel):
     id: int
     name: str
@@ -43,6 +47,19 @@ class Item(BaseModel):
     submitted_at: datetime
     list_id: int
     checked: int
+    probably_have: int = 0
+
+    class Config:
+        from_attributes = True
+
+
+class Recipe(BaseModel):
+    id: int
+    list_id: int
+    url: str
+    submitter: str
+    archived: int
+    created_at: datetime
 
     class Config:
         from_attributes = True
@@ -52,6 +69,7 @@ class ActiveList(BaseModel):
     list_id: int
     created_at: datetime
     items: list[Item]
+    recipes: list[Recipe] = []
 
 
 class ArchivedListSummary(BaseModel):

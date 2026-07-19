@@ -46,7 +46,22 @@ def init_db():
                 category TEXT NOT NULL,
                 updated_at DATETIME NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS recipes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                list_id INTEGER NOT NULL,
+                url TEXT NOT NULL,
+                submitter TEXT NOT NULL,
+                archived INTEGER DEFAULT 0,
+                created_at DATETIME NOT NULL
+            );
         """)
+        # Migrations for columns added after initial deploy
+        try:
+            conn.execute("ALTER TABLE items ADD COLUMN probably_have INTEGER DEFAULT 0")
+            conn.commit()
+        except Exception:
+            pass  # column already exists
         # Ensure there is always one active list
         active = conn.execute(
             "SELECT id FROM lists WHERE status = 'active' LIMIT 1"
@@ -86,8 +101,8 @@ def insert_items(conn, items: list[dict], list_id: int, submitted_by: str):
     ]
     if new_items:
         conn.executemany(
-            "INSERT INTO items (name, category, submitted_by, submitted_at, list_id) VALUES (?, ?, ?, ?, ?)",
-            [(i["name"], i["category"], submitted_by, now, list_id) for i in new_items]
+            "INSERT INTO items (name, category, submitted_by, submitted_at, list_id, probably_have) VALUES (?, ?, ?, ?, ?, ?)",
+            [(i["name"], i["category"], submitted_by, now, list_id, i.get("probably_have", 0)) for i in new_items]
         )
         conn.commit()
     return len(new_items)
@@ -257,5 +272,44 @@ def delete_item(conn, item_id: int):
         "DELETE FROM items WHERE id = ? AND list_id = ?",
         (item_id, active["id"])
     )
+    conn.commit()
+    return result.rowcount > 0
+
+
+def update_item_probably_have(conn, item_id: int, probably_have: bool):
+    active = get_active_list(conn)
+    result = conn.execute(
+        "UPDATE items SET probably_have = ? WHERE id = ? AND list_id = ?",
+        (1 if probably_have else 0, item_id, active["id"])
+    )
+    conn.commit()
+    return result.rowcount > 0
+
+
+def insert_recipe(conn, list_id: int, url: str, submitter: str) -> int:
+    now = datetime.now(timezone.utc).isoformat()
+    cur = conn.execute(
+        "INSERT INTO recipes (list_id, url, submitter, archived, created_at) VALUES (?, ?, ?, 0, ?)",
+        (list_id, url, submitter, now),
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
+def get_recipes_for_list(conn, list_id: int):
+    return conn.execute(
+        "SELECT * FROM recipes WHERE list_id = ? AND archived = 0 ORDER BY created_at ASC",
+        (list_id,),
+    ).fetchall()
+
+
+def delete_recipe(conn, recipe_id: int) -> bool:
+    result = conn.execute("DELETE FROM recipes WHERE id = ?", (recipe_id,))
+    conn.commit()
+    return result.rowcount > 0
+
+
+def archive_recipe_row(conn, recipe_id: int) -> bool:
+    result = conn.execute("UPDATE recipes SET archived = 1 WHERE id = ?", (recipe_id,))
     conn.commit()
     return result.rowcount > 0

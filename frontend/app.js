@@ -45,6 +45,7 @@ async function loadList() {
     if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
     renderActiveList(data);
+    renderRecipes(data.recipes || []);
     document.getElementById('loading').style.display = 'none';
     document.getElementById('active-section').style.display = 'block';
     clearError();
@@ -65,8 +66,12 @@ async function loadArchived() {
 // ── Rendering ─────────────────────────────────────────────────────────────────
 
 function renderActiveList(data) {
+  const mainItems = data.items.filter(i => !i.probably_have);
+  const pantryItems = data.items.filter(i => i.probably_have);
+
+  // Main category sections
   const byCategory = {};
-  for (const item of data.items) {
+  for (const item of mainItems) {
     (byCategory[item.category] = byCategory[item.category] || []).push(item);
   }
 
@@ -101,6 +106,67 @@ function renderActiveList(data) {
 
     container.appendChild(section);
   }
+
+  // Pantry Check zone
+  renderPantryCheck(pantryItems);
+}
+
+function renderPantryCheck(items) {
+  const container = document.getElementById('pantry-check-container');
+  container.innerHTML = '';
+  if (items.length === 0) return;
+
+  const details = document.createElement('details');
+  details.className = 'pantry-check-zone';
+
+  const summary = document.createElement('summary');
+  summary.className = 'pantry-check-toggle';
+  summary.innerHTML = '<span class="emoji">🧂</span>Pantry check — probably have <span class="pantry-check-count">' + items.length + '</span>';
+  details.appendChild(summary);
+
+  const sorted = [...items].sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+  );
+
+  const ul = document.createElement('ul');
+  ul.className = 'item-list';
+  for (const item of sorted) {
+    ul.appendChild(renderPantryItem(item));
+  }
+  details.appendChild(ul);
+  container.appendChild(details);
+}
+
+function renderPantryItem(item) {
+  const li = document.createElement('li');
+  li.className = 'item-row pantry-item-row';
+  li.dataset.id = item.id;
+
+  const name = document.createElement('span');
+  name.className = 'item-name pantry-item-name';
+  name.textContent = item.name;
+
+  const meta = document.createElement('span');
+  meta.className = 'item-meta';
+  meta.textContent = item.submitted_by;
+
+  const needBtn = document.createElement('button');
+  needBtn.className = 'need-it-btn';
+  needBtn.title = 'Need it — move to main list';
+  needBtn.textContent = '+ Need it';
+  needBtn.addEventListener('click', () => markNeeded(item.id, li));
+
+  const del = document.createElement('button');
+  del.className = 'delete-btn';
+  del.title = 'Remove';
+  del.textContent = '×';
+  del.addEventListener('click', () => removeItem(item.id, li));
+
+  li.appendChild(name);
+  li.appendChild(meta);
+  li.appendChild(needBtn);
+  li.appendChild(del);
+  return li;
 }
 
 function renderItem(item) {
@@ -140,6 +206,61 @@ function renderItem(item) {
   li.appendChild(edit);
   li.appendChild(del);
   return li;
+}
+
+function renderRecipes(recipes) {
+  const container = document.getElementById('recipes-container');
+  container.innerHTML = '';
+  if (recipes.length === 0) return;
+
+  const section = document.createElement('div');
+  section.className = 'recipes-section';
+
+  const header = document.createElement('div');
+  header.className = 'recipes-header';
+  header.innerHTML = '<span class="emoji">📋</span>This week\'s recipes';
+  section.appendChild(header);
+
+  for (const recipe of recipes) {
+    section.appendChild(renderRecipeEntry(recipe));
+  }
+
+  container.appendChild(section);
+}
+
+function renderRecipeEntry(recipe) {
+  const row = document.createElement('div');
+  row.className = 'recipe-row';
+  row.dataset.id = recipe.id;
+
+  const link = document.createElement('a');
+  link.href = recipe.url;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.className = 'recipe-url';
+  link.textContent = recipe.url;
+
+  const meta = document.createElement('span');
+  meta.className = 'item-meta';
+  meta.textContent = recipe.submitter;
+
+  const archiveBtn = document.createElement('button');
+  archiveBtn.className = 'btn btn-secondary btn-sm recipe-action-btn';
+  archiveBtn.title = 'Archive this recipe';
+  archiveBtn.textContent = 'Archive';
+  archiveBtn.addEventListener('click', () => archiveRecipe(recipe.id, row));
+
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'delete-btn';
+  removeBtn.title = 'Remove';
+  removeBtn.textContent = '×';
+  removeBtn.addEventListener('click', () => removeRecipe(recipe.id, row));
+
+  row.appendChild(link);
+  row.appendChild(meta);
+  row.appendChild(archiveBtn);
+  row.appendChild(removeBtn);
+  return row;
 }
 
 function startEdit(item, nameEl) {
@@ -273,6 +394,46 @@ async function removeItem(id, el) {
     el.remove();
   } catch {
     showError('Could not remove item.');
+  }
+}
+
+async function markNeeded(id, el) {
+  try {
+    const res = await fetch(`${API}/item/${id}/probably-have`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ probably_have: false })
+    });
+    if (!res.ok) throw new Error();
+    clearError();
+    await loadList();
+  } catch {
+    showError('Could not move item to list.');
+  }
+}
+
+async function removeRecipe(id, el) {
+  try {
+    const res = await fetch(`${API}/recipe/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error();
+    el.remove();
+    // Hide section if now empty
+    const container = document.getElementById('recipes-container');
+    if (!container.querySelector('.recipe-row')) container.innerHTML = '';
+  } catch {
+    showError('Could not remove recipe.');
+  }
+}
+
+async function archiveRecipe(id, el) {
+  try {
+    const res = await fetch(`${API}/recipe/${id}/archive`, { method: 'POST' });
+    if (!res.ok) throw new Error();
+    el.remove();
+    const container = document.getElementById('recipes-container');
+    if (!container.querySelector('.recipe-row')) container.innerHTML = '';
+  } catch {
+    showError('Could not archive recipe.');
   }
 }
 
