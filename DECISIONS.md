@@ -4,6 +4,20 @@ Append-only. New entries go at the top. Format: `## YYYY-MM-DD — Title`
 
 ---
 
+## Recipe import + Pantry Check zone + This Week's Recipes
+
+Decision: Added recipe import via emailed URL, a 'Pantry Check — probably have' zone, and a 'This Week's Recipes' reference log.
+- 'Probably have already' is a status (probably_have), not a seventh category. The six categories answer 'where in the store'; probably-have answers 'do I need to buy it.' Salt is both, so a peer category would force a misclassification. Keeping it orthogonal removes that conflict.
+- Recipe import reuses the email pipeline: email a URL, backend detects a single-URL body and branches. No new input surface.
+- This Week's Recipes is a deliberately simple log of URLs, NOT linked to the parsed items. It exists purely for reference/planning. Decoupling it from ingredients was an explicit scope choice to keep the feature small.
+- Recipe URLs are logged regardless of parse success, so a paywalled recipe you still want to open manually isn't lost.
+- Link text is the raw URL, not a parsed title, so success and failure render consistently.
+- Per-recipe controls: 'x' hard-removes the logged link; archive control archives it with the list using the same mechanism items use.
+- Staple detection is a static keyword list in the backend, not a Claude judgment. Predictable and editable; the human confirms in the Pantry Check zone, so a wrong flag costs one tap.
+- Human-in-the-loop resolves have-vs-need. Email items = explicit buy -> main list. Recipe staples -> Pantry Check zone, default off; user taps what they're out of. The app never guesses pantry state.
+- Extraction: JSON-LD recipeIngredient first, Claude-reads-page-text fallback. Paywalled/blocked sites fail with a visible notice item.
+- Dedupe is best-effort (v0 limitation) because items are stored verbatim.
+
 ## 2026-07-03 — Preserve full item text on categorization
 The original categorizer prompt told Claude to return a cleaned, normalized name, which stripped quantities, notes, and qualifiers (e.g. "Lemons (4)" became "Lemons", "Corn – 15-ish ears" became "Corn"). Changed the prompt to explicitly instruct Claude to preserve the complete original line exactly as written, regardless of whether extra text appears before or after the item name. This is more useful for shoppers and avoids lossy parsing.
 ## 2026-06-30 — Established GitHub as canonical source of truth
