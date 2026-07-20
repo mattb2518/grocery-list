@@ -34,7 +34,6 @@
       <div class="archive-row">
         <button id="archive-checked-btn" class="btn btn-secondary">Archive checked items</button>
         <button id="archive-all-btn" class="btn btn-secondary">Archive full list</button>
-        <button id="library-btn" class="btn btn-secondary">📋 Recipes</button>
       </div>
     </section>
 
@@ -43,6 +42,14 @@
       <details id="archived-details">
         <summary class="archived-toggle">Past lists</summary>
         <div id="archived-list"></div>
+      </details>
+    </section>
+
+    <!-- Recipe Library -->
+    <section id="library-section">
+      <details id="library-details">
+        <summary class="archived-toggle">📋 Recipe Library</summary>
+        <div id="library-list" class="library-list"></div>
       </details>
     </section>
   </main>
@@ -67,17 +74,6 @@
         <button id="pick-cancel" class="btn btn-secondary">Cancel</button>
         <button id="pick-confirm" class="btn btn-primary">Add checked items</button>
       </div>
-    </div>
-  </div>
-
-  <!-- Recipe Library modal -->
-  <div id="library-modal-overlay" class="modal-overlay" style="display:none">
-    <div class="modal modal-wide">
-      <div class="library-modal-header">
-        <h3 class="modal-title">Recipe Library</h3>
-        <button id="library-close" class="library-close-btn" title="Close">×</button>
-      </div>
-      <div id="library-list" class="library-list"></div>
     </div>
   </div>
 

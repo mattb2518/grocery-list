@@ -29,8 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('modal-confirm').addEventListener('click', confirmArchive);
   document.getElementById('pick-cancel').addEventListener('click', hidePickModal);
   document.getElementById('pick-confirm').addEventListener('click', confirmPickItems);
-  document.getElementById('library-btn').addEventListener('click', openLibrary);
-  document.getElementById('library-close').addEventListener('click', closeLibrary);
+  document.getElementById('library-details').addEventListener('toggle', onLibraryToggle);
 });
 
 function startPolling() {
@@ -434,8 +433,8 @@ async function archiveRecipe(id, el) {
     el.remove();
     const container = document.getElementById('recipes-container');
     if (!container.querySelector('.recipe-row')) container.innerHTML = '';
-    // Keep Library in sync if it's open
-    if (document.getElementById('library-modal-overlay').style.display !== 'none') {
+    // Keep Library in sync if it's expanded
+    if (document.getElementById('library-details').open) {
       await refreshLibraryList();
     }
   } catch {
@@ -443,15 +442,9 @@ async function archiveRecipe(id, el) {
   }
 }
 
-async function openLibrary() {
-  const listEl = document.getElementById('library-list');
-  listEl.innerHTML = '<div class="library-loading">Loading…</div>';
-  document.getElementById('library-modal-overlay').style.display = 'flex';
+async function onLibraryToggle(e) {
+  if (!e.target.open) return;
   await refreshLibraryList();
-}
-
-function closeLibrary() {
-  document.getElementById('library-modal-overlay').style.display = 'none';
 }
 
 async function refreshLibraryList() {
