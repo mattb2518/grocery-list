@@ -128,9 +128,7 @@ def _ingest_recipe(conn, list_id: int, sender: str, url: str) -> int:
 def _process_message(conn, list_id: int, sender: str, subject: str, body: str) -> int:
     """Route a message: recipe path if body leads with a bare URL, else freeform."""
     b = (body or "").strip()
-    logger.info("_process_message body repr: %r", b[:300])
     url = _extract_leading_url(b)
-    logger.info("_extract_leading_url returned: %r", url)
     if url:
         return _ingest_recipe(conn, list_id, sender, url)
     return _ingest_freeform(conn, list_id, sender, subject, b)
