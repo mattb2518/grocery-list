@@ -9,7 +9,12 @@ import anthropic
 
 logger = logging.getLogger(__name__)
 
-_USER_AGENT = "Mozilla/5.0 (compatible; GroceryListBot/1.0)"
+_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+_FETCH_HEADERS = {
+    "User-Agent": _USER_AGENT,
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+}
 _FETCH_TIMEOUT = 10
 
 
@@ -110,7 +115,7 @@ def fetch_recipe_ingredients(url: str) -> dict:
         resp = requests.get(
             url,
             timeout=_FETCH_TIMEOUT,
-            headers={"User-Agent": _USER_AGENT},
+            headers=_FETCH_HEADERS,
             allow_redirects=True,
         )
         resp.raise_for_status()
