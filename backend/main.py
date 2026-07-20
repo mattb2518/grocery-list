@@ -43,15 +43,15 @@ _SINGLE_URL_RE = re.compile(r'^https?://\S+$')
 
 
 def _extract_leading_url(body: str) -> str | None:
-    """Return the URL if the body's first non-empty line is a bare URL (the
-    rest may be a Gmail signature or footer). Returns None otherwise."""
+    """Return the first bare URL found in the body, or None.
+
+    Handles Gmail signatures, Outlook forwarded-message headers, and other
+    boilerplate that may appear before or after the URL.
+    """
     for line in body.splitlines():
         line = line.strip()
-        if not line:
-            continue
         if _SINGLE_URL_RE.match(line):
             return line
-        return None  # first non-empty line is not a URL
     return None
 
 
