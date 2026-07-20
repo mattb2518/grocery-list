@@ -42,8 +42,17 @@ FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 _SINGLE_URL_RE = re.compile(r'^https?://\S+$')
 
 
-def _is_single_url(body: str) -> bool:
-    return bool(_SINGLE_URL_RE.match(body.strip()))
+def _extract_leading_url(body: str) -> str | None:
+    """Return the URL if the body's first non-empty line is a bare URL (the
+    rest may be a Gmail signature or footer). Returns None otherwise."""
+    for line in body.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        if _SINGLE_URL_RE.match(line):
+            return line
+        return None  # first non-empty line is not a URL
+    return None
 
 
 async def _mailbox_poll_loop():
@@ -117,10 +126,11 @@ def _ingest_recipe(conn, list_id: int, sender: str, url: str) -> int:
 
 
 def _process_message(conn, list_id: int, sender: str, subject: str, body: str) -> int:
-    """Route a message: recipe path if body is a bare URL, else freeform."""
+    """Route a message: recipe path if body leads with a bare URL, else freeform."""
     b = (body or "").strip()
-    if _is_single_url(b):
-        return _ingest_recipe(conn, list_id, sender, b)
+    url = _extract_leading_url(b)
+    if url:
+        return _ingest_recipe(conn, list_id, sender, url)
     return _ingest_freeform(conn, list_id, sender, subject, b)
 
 
